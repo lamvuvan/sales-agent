@@ -52,7 +52,16 @@ class RedisSessionStore:
     """Redis-backed store with per-key TTL."""
 
     def __init__(self, url: str, ttl_s: int) -> None:
-        import redis  # local import so tests don't require the lib.
+        # Lazy import: the ``redis`` package is a declared dep but we defer the
+        # import until construction so pytest runs that use InMemorySessionStore
+        # don't fail to collect when the package isn't installed in a minimal env.
+        try:
+            import redis
+        except ImportError as exc:
+            raise ImportError(
+                "The 'redis' package is required for RedisSessionStore. "
+                "Install it via `pip install redis` or `pip install -e '.'`."
+            ) from exc
 
         self._client = redis.Redis.from_url(url, decode_responses=True)
         self._ttl = ttl_s
