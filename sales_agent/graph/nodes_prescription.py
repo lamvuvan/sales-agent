@@ -8,7 +8,7 @@ import logging
 from ..db.pg import session_scope
 from ..llm.client import chat, load_prompt
 from ..tools.equivalents import find_equivalent_drugs
-from ..tools.inventory import check_stock
+from ..tools.inventory import check_stock, check_stock_by_name
 from ..tools.safety import DISCLAIMER_VI, get_contraindications
 from .state import AgentState, InventoryResult
 
@@ -19,17 +19,22 @@ def check_inventory(state: AgentState) -> AgentState:
     results: list[InventoryResult] = []
     with session_scope() as sess:
         for item in state.get("prescription_items") or []:
-            stock = check_stock(
-                sess,
-                inn=item["active_ingredient"],
-                strength=item["strength"],
-                dosage_form=item["dosage_form"],
-            )
-            requested = int(item.get("quantity") or 0)
+            # Prefer exact brand match so the prescribed SKU's stock determines status.
+            # Only fall back to INN+strength+form lookup if the brand isn't in the catalog
+            # (drug_name may be missing or a different brand label than we stock).
+            stock = check_stock_by_name(sess, item.get("drug_name", ""))
+            if stock["status"] == "not_carried":
+                stock = check_stock(
+                    sess,
+                    inn=item["active_ingredient"],
+                    strength=item["strength"],
+                    dosage_form=item["dosage_form"],
+                )
+                # Even if a generic is found via INN, mark the prescribed brand as
+                # not_carried so the substitute flow still proposes alternatives.
+                if stock["status"] == "in_stock":
+                    stock = {**stock, "status": "not_carried"}
             final_status = stock["status"]
-            if final_status == "in_stock" and requested > stock["qty_on_hand"]:
-                # Shortfall is still "in_stock" but we'll note it via safety_notes.
-                pass
             matched = None
             if stock["product_id"]:
                 matched = {
