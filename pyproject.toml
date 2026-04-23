@@ -2,7 +2,7 @@
 name = "sales-agent"
 version = "0.1.0"
 description = "Pharmacy/grocery sales assistant agent (Vietnamese) powered by LangGraph + Neo4j + pgvector"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 readme = "README.md"
 dependencies = [
     "fastapi>=0.115.0",
@@ -44,7 +44,7 @@ include = ["sales_agent*"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py310"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

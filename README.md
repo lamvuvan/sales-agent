@@ -9,7 +9,7 @@ Hai luồng chính:
 
 ## Stack
 
-- Python 3.11 + LangGraph (orchestration) + FastAPI (REST)
+- Python 3.10+ + LangGraph (orchestration) + FastAPI (REST)
 - Postgres + pgvector (catalog, inventory, OTC formulas với embedding)
 - Neo4j (Drug / ActiveIngredient / ATCClass / EQUIVALENT_TO)
 - OpenAI GPT (`gpt-4o` / `gpt-4o-mini`) + `text-embedding-3-small`
