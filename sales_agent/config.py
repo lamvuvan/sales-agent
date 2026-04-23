@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     neo4j_user: str = Field(default="neo4j")
     neo4j_password: str = Field(default="neo4j_pw")
 
+    # Redis (chat session store)
+    redis_url: str = Field(default="redis://localhost:6379/0")
+    chat_session_ttl_s: int = Field(default=3600)
+
     # App
     app_env: str = Field(default="dev")
     log_level: str = Field(default="INFO")

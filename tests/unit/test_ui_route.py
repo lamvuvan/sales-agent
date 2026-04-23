@@ -34,6 +34,19 @@ def test_ui_has_chat_tab() -> None:
     assert "parsed-box" in body
 
 
+def test_ui_has_multi_turn_clarification_widgets() -> None:
+    """Chat tab has transcript, session pill, reset button, and clarification helpers."""
+    body = TestClient(create_app()).get("/ui").text
+    assert 'id="chat-transcript"' in body
+    assert 'id="chat-session-id"' in body
+    assert 'id="chat-reset"' in body
+    assert "clarificationBubble" in body
+    assert "pickOption" in body
+    assert "chatSessionId" in body
+    # An ambiguous example is pre-loaded to make the clarification demo discoverable.
+    assert "rx_ambiguous" in body
+
+
 def test_root_redirects_to_ui() -> None:
     client = TestClient(create_app())
     r = client.get("/", follow_redirects=False)

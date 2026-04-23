@@ -39,6 +39,8 @@ class AgentState(TypedDict, total=False):
     raw_text: str
     parsed: dict[str, Any] | None
     nlu_extracted_items: list[dict[str, Any]]
+    nlu_candidates: dict[str, list[dict[str, Any]]]  # keyed by item index (str)
+    pending_clarification: dict[str, Any] | None
 
     # Prescription input
     prescription_items: list[PrescriptionItemIn]
