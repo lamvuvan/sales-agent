@@ -1,0 +1,9 @@
+{
+  "patient": {
+    "age_years": 28,
+    "pregnancy": false,
+    "allergies": []
+  },
+  "symptoms_vi": ["sốt nhẹ", "sổ mũi", "đau họng"],
+  "duration_days": 1
+}

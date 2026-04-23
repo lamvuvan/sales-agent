@@ -1,0 +1,25 @@
+{
+  "patient": {
+    "age_years": 34,
+    "pregnancy": false,
+    "allergies": []
+  },
+  "items": [
+    {
+      "drug_name": "Panadol 500mg",
+      "active_ingredient": "paracetamol",
+      "strength": "500mg",
+      "dosage_form": "viên nén",
+      "quantity": 20,
+      "dosage_instruction": "1 viên x 3 lần/ngày sau ăn"
+    },
+    {
+      "drug_name": "Bromhexin 8mg",
+      "active_ingredient": "bromhexine",
+      "strength": "8mg",
+      "dosage_form": "viên nén",
+      "quantity": 30,
+      "dosage_instruction": "1 viên x 3 lần/ngày"
+    }
+  ]
+}

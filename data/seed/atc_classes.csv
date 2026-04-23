@@ -1,0 +1,39 @@
+code,name_vi,level
+N02,Thuốc giảm đau,2
+N02B,Giảm đau khác,3
+N02BE,Anilides (paracetamol),4
+N02BA,Acid salicylic và dẫn xuất,4
+M01A,Chống viêm không steroid,3
+M01AE,Dẫn xuất acid propionic,4
+R06,Kháng histamine,2
+R06A,Kháng histamine toàn thân,3
+R06AB,Alkylamin thế,4
+R06AX,Kháng histamine khác,4
+R06AE,Piperazin,4
+R05,Thuốc ho và cảm lạnh,2
+R05C,Long đờm,3
+R05CB,Mucolytic,4
+R05D,Ức chế ho,3
+R05DA,Opium alkaloids và dẫn xuất,4
+A07,Chống tiêu chảy,2
+A07B,Hấp phụ đường ruột,3
+A07BC,Hấp phụ khác,4
+A07C,Electrolyte/oresol,3
+A07CA,Bù nước/điện giải đường uống,4
+A07D,Thuốc làm giảm nhu động ruột,3
+A07DA,Loperamide và tương tự,4
+A03,Thuốc tiêu hoá,2
+A03F,Prokinetic,3
+A03FA,Prokinetic,4
+A02,Thuốc loét dạ dày,2
+A02B,Thuốc loét dạ dày - tá tràng,3
+A02BA,Kháng H2,4
+J01,Kháng khuẩn dùng toàn thân,2
+J01C,Beta-lactam penicillin,3
+J01CA,Penicillin phổ rộng,4
+J05,Kháng virus dùng toàn thân,2
+J05A,Kháng virus trực tiếp,3
+J05AH,Ức chế neuraminidase,4
+R01,Thuốc dùng đường mũi,2
+R01B,Giảm sung huyết mũi toàn thân,3
+R01BA,Giao cảm,4

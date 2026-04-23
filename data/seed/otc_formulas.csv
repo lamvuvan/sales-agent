@@ -1,0 +1,11 @@
+code,name_vi,symptom_tags,symptom_text_vi,min_age_years,max_age_years,pregnancy_safe,notes_vi
+F-FLU-ADULT,Cảm cúm người lớn,sốt|sổ mũi|đau họng|đau đầu|mệt mỏi,"Người lớn bị cảm cúm với các triệu chứng sốt nhẹ đến vừa, sổ mũi, ngạt mũi, đau họng, đau đầu, mệt mỏi toàn thân.",12,,false,Ưu tiên nghỉ ngơi và uống nhiều nước. Không dùng quá 3-5 ngày.
+F-COLD-ADULT,Cảm lạnh người lớn,sổ mũi|hắt hơi|ngạt mũi|ho nhẹ,"Người lớn bị cảm lạnh thông thường với sổ mũi, hắt hơi, ngạt mũi, không sốt hoặc sốt nhẹ.",12,,false,
+F-FEVER-KID,Hạ sốt trẻ em,sốt|sốt nhẹ,Trẻ em sốt nhẹ đến vừa (37.5-38.5°C) không kèm triệu chứng nặng.,0.25,12,false,Dùng paracetamol dạng siro hoặc gói bột theo cân nặng. Theo dõi sát nếu sốt cao hoặc kéo dài.
+F-RHIN-ADULT,Viêm mũi dị ứng người lớn,sổ mũi|ngứa mũi|hắt hơi|ngứa mắt,"Người lớn bị viêm mũi dị ứng với hắt hơi, sổ mũi nước trong, ngứa mũi/ngứa mắt.",12,,true,Có thể dùng kéo dài theo mùa.
+F-DRY-COUGH,Ho khan người lớn,ho khan|ho không đờm|ngứa họng,"Ho khan kéo dài không có đờm, ngứa rát cổ họng ở người lớn.",12,,false,
+F-WET-COUGH,Ho có đờm người lớn,ho có đờm|ho đàm|khò khè,Ho có đờm đặc khó khạc ở người lớn; mong muốn long đờm.,12,,false,Uống nhiều nước để hỗ trợ long đờm.
+F-SORE-THROAT,Đau họng nhẹ người lớn,đau họng|rát họng|viêm họng nhẹ,"Đau họng mức độ nhẹ, không sốt cao, không có dấu hiệu viêm amidan mủ.",12,,false,
+F-DIARRHEA-MILD,Tiêu chảy nhẹ người lớn,tiêu chảy|đi ngoài lỏng|tiêu chảy nhẹ,"Tiêu chảy cấp nhẹ (≤3 lần/ngày) không sốt, không phân máu, không mất nước nặng ở người lớn.",12,,true,Bù nước ORS là quan trọng nhất. Dùng thêm hấp phụ nếu cần.
+F-DYSPEPSIA,Khó tiêu đầy hơi người lớn,đầy hơi|khó tiêu|ợ hơi|chậm tiêu,"Khó tiêu chức năng với đầy hơi, ợ hơi, cảm giác no sớm sau ăn.",12,,false,Hạn chế thức ăn nhiều dầu mỡ.
+F-GERD-MILD,Trào ngược/nóng rát thượng vị nhẹ,ợ nóng|nóng rát thượng vị|ợ chua|trào ngược,"Triệu chứng trào ngược nhẹ với ợ nóng, ợ chua, nóng rát sau xương ức ở người lớn.",12,,false,Nếu kéo dài >2 tuần cần đi khám.
