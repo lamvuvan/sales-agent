@@ -1,0 +1,26 @@
+{
+  "_note": "Kịch bản demo: đơn kê Panadol 500mg và một brand không kinh doanh. Để Panadol thực sự 'out_of_stock', tạm UPDATE inventory SET qty_on_hand = 0 WHERE product_id = (SELECT id FROM products WHERE sku = 'SKU-001');",
+  "patient": {
+    "age_years": 34,
+    "pregnancy": false,
+    "allergies": []
+  },
+  "items": [
+    {
+      "drug_name": "Panadol 500mg",
+      "active_ingredient": "paracetamol",
+      "strength": "500mg",
+      "dosage_form": "viên nén",
+      "quantity": 20,
+      "dosage_instruction": "1 viên x 3 lần/ngày khi sốt"
+    },
+    {
+      "drug_name": "Paracetamol XYZ Brand 500mg",
+      "active_ingredient": "paracetamol",
+      "strength": "500mg",
+      "dosage_form": "viên nén",
+      "quantity": 10,
+      "dosage_instruction": "1 viên khi đau đầu"
+    }
+  ]
+}
