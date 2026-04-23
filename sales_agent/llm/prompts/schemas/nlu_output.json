@@ -1,0 +1,71 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "intent",
+    "patient_overrides",
+    "prescription_items",
+    "symptoms_vi",
+    "duration_days"
+  ],
+  "properties": {
+    "intent": {
+      "type": "string",
+      "enum": ["prescription", "symptom"]
+    },
+    "patient_overrides": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["age_years", "pregnancy", "allergies"],
+      "properties": {
+        "age_years": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 130
+        },
+        "pregnancy": {
+          "type": ["boolean", "null"]
+        },
+        "allergies": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "prescription_items": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "brand",
+          "active_ingredient",
+          "strength",
+          "dosage_form",
+          "quantity",
+          "dosage_instruction"
+        ],
+        "properties": {
+          "brand": { "type": ["string", "null"] },
+          "active_ingredient": { "type": ["string", "null"] },
+          "strength": { "type": ["string", "null"] },
+          "dosage_form": { "type": ["string", "null"] },
+          "quantity": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "dosage_instruction": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "symptoms_vi": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "duration_days": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 365
+    }
+  }
+}

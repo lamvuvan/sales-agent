@@ -1,6 +1,7 @@
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- products: catalog of SKUs carried by the store
 CREATE TABLE IF NOT EXISTS products (
@@ -20,6 +21,8 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE INDEX IF NOT EXISTS idx_products_inn_strength_form
     ON products (active_ingredient, strength, dosage_form);
 CREATE INDEX IF NOT EXISTS idx_products_rx_only ON products (rx_only);
+CREATE INDEX IF NOT EXISTS idx_products_name_trgm
+    ON products USING gin (name_vi gin_trgm_ops);
 
 -- inventory
 CREATE TABLE IF NOT EXISTS inventory (
