@@ -86,7 +86,11 @@ def test_unknown_brand_falls_back_and_stays_not_carried(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Brand not in catalog, but a generic INN match has stock -> report not_carried
-    so the substitute flow still runs (Panadol XYZ brand doesn't exist; Hapacol does)."""
+    so the substitute flow still runs (Panadol XYZ brand doesn't exist; Hapacol does).
+
+    The prescribed brand's row must report qty_on_hand=0 — the matched SKU's
+    stock count belongs on the substitute row, not on the 'not_carried' line.
+    """
     monkeypatch.setattr(nodes_prescription, "session_scope", _fake_session)
     monkeypatch.setattr(
         nodes_prescription,
@@ -103,8 +107,11 @@ def test_unknown_brand_falls_back_and_stays_not_carried(
     out = nodes_prescription.check_inventory(state)
     r = out["inventory_results"][0]
     assert r["status"] == "not_carried"
-    # matched_product still carries the generic for info, but status is not_carried.
+    # qty_on_hand reset to 0 so the UI doesn't misreport the equivalent SKU's stock.
+    assert r["qty_on_hand"] == 0
+    # matched_product kept for downstream (substitute lookup, contraindication check).
     assert r["matched_product"]["name_vi"] == "Hapacol 500"
+    assert r["matched_product"]["sku"] == "SKU-002"
 
 
 def test_unknown_brand_no_generic_is_not_carried(monkeypatch: pytest.MonkeyPatch) -> None:
