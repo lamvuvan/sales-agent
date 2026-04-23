@@ -37,11 +37,13 @@ readyz() {
   curl -fsS "$API/readyz" | $JQ
 }
 
-# Kịch bản 1 — đơn thuốc 3 item, 1 item hết hàng (Bromhexin 8mg, SKU-014 qty=0).
-# Kỳ vọng: Panadol in_stock, Amoxicillin in_stock (rx_only), Bromhexin out_of_stock
-# -> gợi ý thay thế Ambroxol 30mg.
+# Kịch bản 1 — đơn thuốc 3 item, 2 item hết hàng theo seed mặc định:
+#   SKU-001 Panadol 500mg (qty=0)  + SKU-014 Bromhexin 8mg (qty=0).
+# Kỳ vọng: Panadol out_of_stock -> substitutes paracetamol (Hapacol 500, Panadol Extra...),
+#          Amoxicillin in_stock (rx_only),
+#          Bromhexin out_of_stock -> substitutes Ambroxol 30mg.
 rx_mixed() {
-  hr "POST $API/prescriptions/check — đơn 3 item (1 hết hàng)"
+  hr "POST $API/prescriptions/check — đơn 3 item (2 hết hàng: Panadol + Bromhexin)"
   curl -fsS -X POST "$API/prescriptions/check" \
     -H 'content-type: application/json' \
     -d '{
@@ -75,12 +77,10 @@ rx_from_file() {
     -d @"$(dirname "$0")/rx_example.json" | $JQ
 }
 
-# Kịch bản 3b — Panadol hết hàng + brand paracetamol không kinh doanh.
+# Kịch bản 3b — Panadol hết hàng (seed mặc định) + brand paracetamol không kinh doanh.
 # Kỳ vọng: cả 2 item trả về substitutes theo hoạt chất paracetamol
 # (Hapacol 500, Efferalgan 500mg, Panadol Extra, Tiffy Dey, Decolgen Forte...),
 # lọc chỉ thuốc đang có tồn kho.
-# LƯU Ý: trước khi chạy, SET qty_on_hand = 0 cho SKU-001 (Panadol) trong inventory
-# để tạo trạng thái out_of_stock cho demo (xem panadol_set_oos).
 rx_paracetamol_oos() {
   hr "POST $API/prescriptions/check — Panadol hết + brand lạ (substitutes theo paracetamol)"
   curl -fsS -X POST "$API/prescriptions/check" \
@@ -88,23 +88,24 @@ rx_paracetamol_oos() {
     -d @"$(dirname "$0")/rx_paracetamol_oos.json" | $JQ
 }
 
-# Helper: đặt tồn kho Panadol (SKU-001) về 0 để demo out_of_stock.
+# Helper: đặt tồn kho Panadol (SKU-001) về 0 — trùng seed mặc định.
+# Dùng sau khi đã chạy panadol_restore (hoặc tự tăng kho) để quay về trạng thái demo.
 panadol_set_oos() {
   hr "SQL: SET qty_on_hand = 0 cho SKU-001 (Panadol 500mg)"
   psql_exec "UPDATE inventory SET qty_on_hand = 0, updated_at = now()
              WHERE product_id = (SELECT id FROM products WHERE sku = 'SKU-001');"
 }
 
-# Helper: khôi phục tồn kho Panadol về giá trị seed (120).
+# Helper: đổi tồn kho Panadol sang 120 để minh hoạ trạng thái còn hàng.
 panadol_restore() {
-  hr "SQL: RESTORE qty_on_hand = 120 cho SKU-001 (Panadol 500mg)"
+  hr "SQL: SET qty_on_hand = 120 cho SKU-001 (Panadol 500mg)"
   psql_exec "UPDATE inventory SET qty_on_hand = 120, updated_at = now()
              WHERE product_id = (SELECT id FROM products WHERE sku = 'SKU-001');"
 }
 
 # Kịch bản 3c — CURL INLINE (không cần file) cho đơn chỉ kê Panadol 500mg.
-# Gửi thẳng bằng heredoc; giả định Panadol đang có hàng — dùng panadol_set_oos
-# trước nếu muốn demo out_of_stock.
+# Với seed mặc định, Panadol đang OOS -> response sẽ có substitutes paracetamol.
+# Gọi panadol_restore trước nếu muốn thấy trạng thái in_stock.
 rx_panadol_only() {
   hr "POST $API/prescriptions/check — chỉ Panadol 500mg (inline curl)"
   curl -fsS -X POST "$API/prescriptions/check" \
@@ -130,16 +131,16 @@ rx_panadol_only() {
 JSON
 }
 
-# Kịch bản 3d — FULL FLOW test Panadol hết hàng end-to-end.
-# 1) panadol_set_oos  (UPDATE qty=0)
-# 2) curl POST /prescriptions/check với chỉ Panadol 500mg
-#    -> kỳ vọng status="out_of_stock", substitutes chứa các thuốc paracetamol
-#       500mg viên nén còn hàng (Hapacol 500, Panadol Extra, Tiffy Dey, Decolgen Forte...)
-# 3) panadol_restore  (UPDATE qty=120)
+# Kịch bản 3d — FULL FLOW demo cả 2 trạng thái Panadol, trả về seed default.
+# 1) rx_panadol_only  (seed=OOS -> expect out_of_stock + substitutes paracetamol)
+# 2) panadol_restore  (qty=120)
+# 3) rx_panadol_only  (expect in_stock, không substitutes)
+# 4) panadol_set_oos  (qty=0, về lại seed default)
 rx_panadol_oos_scenario() {
-  panadol_set_oos
   rx_panadol_only
   panadol_restore
+  rx_panadol_only
+  panadol_set_oos
 }
 
 # Kịch bản 4 — cảm cúm người lớn (không red flag) -> kỳ vọng F-FLU-ADULT top hit.
