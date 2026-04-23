@@ -74,18 +74,75 @@
   }
   .suggestion ul { margin: 6px 0 0 18px; padding: 0; }
   .suggestion li { margin: 2px 0; font-size: 13px; }
+  .patient-row {
+    display: flex; gap: 14px; margin-top: 12px; flex-wrap: wrap; align-items: flex-end;
+  }
+  .patient-row input[type="number"], .patient-row input[type="text"] {
+    padding: 8px 10px; background: #0b1220; color: var(--fg);
+    border: 1px solid var(--border); border-radius: 4px; font-size: 13px;
+  }
+  .patient-row label { margin: 0 0 4px; }
+  .inline-check { display: flex !important; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--fg); padding: 8px 0; }
+  .parsed-box {
+    margin-bottom: 14px; padding: 10px 12px; background: #020617;
+    border-left: 3px solid var(--accent); border-radius: 3px;
+  }
+  .parsed-box h3 { margin: 0 0 6px; font-size: 13px; color: var(--accent); }
+  .parsed-box .kv { font-size: 12.5px; color: var(--muted); margin: 2px 0; }
+  .parsed-box .kv b { color: var(--fg); font-weight: 500; }
+  .intent-chip {
+    display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 11px;
+    font-weight: 600; background: rgba(56,189,248,0.2); color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .resolution-chip { padding: 1px 6px; border-radius: 3px; font-size: 10.5px; margin-left: 4px; }
+  .resolution-chip.brand_exact { background: rgba(74,222,128,0.2); color: var(--ok); }
+  .resolution-chip.brand_fuzzy { background: rgba(251,191,36,0.2); color: var(--warn); }
+  .resolution-chip.inn_form    { background: rgba(56,189,248,0.2); color: var(--accent); }
+  .resolution-chip.unresolved  { background: rgba(248,113,113,0.2); color: var(--err); }
 </style>
 </head>
 <body>
 <h1>Pharmacy Sales Agent — Test UI</h1>
-<div class="sub">Trợ lý nhà thuốc tiếng Việt · endpoints <code>/prescriptions/check</code> và <code>/symptoms/advise</code></div>
+<div class="sub">Trợ lý nhà thuốc tiếng Việt · endpoints <code>/chat</code> · <code>/prescriptions/check</code> · <code>/symptoms/advise</code></div>
 
 <div class="tabs">
-  <div class="tab active" data-tab="rx" onclick="showTab('rx')">Kiểm đơn thuốc</div>
+  <div class="tab active" data-tab="chat" onclick="showTab('chat')">💬 Chat (NLU)</div>
+  <div class="tab" data-tab="rx" onclick="showTab('rx')">Kiểm đơn thuốc</div>
   <div class="tab" data-tab="sym" onclick="showTab('sym')">Tư vấn triệu chứng</div>
 </div>
 
-<div class="panel active" id="panel-rx">
+<div class="panel active" id="panel-chat">
+  <div class="example-row">
+    <span class="muted">Ví dụ:</span>
+    <button class="example-btn" onclick="loadChat('rx_panadol')">Đơn Panadol</button>
+    <button class="example-btn" onclick="loadChat('rx_mixed')">Đơn 3 thuốc</button>
+    <button class="example-btn" onclick="loadChat('sym_flu')">Cảm cúm người lớn</button>
+    <button class="example-btn" onclick="loadChat('sym_infant')">Trẻ 2 tháng sốt</button>
+    <button class="example-btn" onclick="loadChat('sym_pregnancy')">Phụ nữ có thai</button>
+    <button class="example-btn" onclick="loadChat('sym_dyspnea')">Khó thở (red flag)</button>
+  </div>
+  <label>Đoạn văn tiếng Việt (đơn thuốc hoặc mô tả triệu chứng)</label>
+  <textarea id="chat-raw" style="min-height:110px;font-family:inherit;font-size:14px"></textarea>
+  <div class="patient-row">
+    <div>
+      <label>Tuổi (tuỳ chọn)</label>
+      <input id="chat-age" type="number" step="0.1" min="0" max="130" placeholder="vd 28">
+    </div>
+    <div>
+      <label>&nbsp;</label>
+      <label class="inline-check"><input id="chat-preg" type="checkbox"> Đang mang thai</label>
+    </div>
+    <div style="flex:1;min-width:200px">
+      <label>Dị ứng (phân cách bằng dấu phẩy)</label>
+      <input id="chat-allergies" type="text" placeholder="penicillin, ibuprofen">
+    </div>
+  </div>
+  <button class="primary" id="chat-submit" onclick="submitChat()">Gửi POST /chat</button>
+  <div id="chat-response"></div>
+</div>
+
+<div class="panel" id="panel-rx">
   <div class="example-row">
     <span class="muted">Ví dụ:</span>
     <button class="example-btn" onclick="loadRx('panadol_oos')">Panadol hết hàng</button>
@@ -149,14 +206,31 @@ const SYM = {
   dyspnea:      { patient: { age_years: 55, pregnancy: false, allergies: [] }, symptoms_vi: ["khó thở", "đau ngực"], duration_days: 0 }
 };
 
+const CHAT_EXAMPLES = {
+  rx_panadol:    { text: "Panadol 500mg, 1 viên x 3 lần/ngày x 5 ngày", age: 34 },
+  rx_mixed:      { text: "Panadol 500mg 1 viên x 3 lần/ngày x 5 ngày; Amoxicillin 500mg 1 viên x 3 lần/ngày x 7 ngày; Bromhexin 8mg 1 viên x 3 lần/ngày x 5 ngày", age: 34 },
+  sym_flu:       { text: "Khách 28 tuổi bị sốt nhẹ, sổ mũi, đau họng 1 ngày nay", age: 28 },
+  sym_infant:    { text: "Bé 2 tháng tuổi bị sốt", age: 0.17 },
+  sym_pregnancy: { text: "Phụ nữ 30 tuổi đang mang thai bị sổ mũi, hắt hơi 2 ngày", age: 30, preg: true },
+  sym_dyspnea:   { text: "Người 55 tuổi bị khó thở, đau ngực", age: 55 }
+};
+
 function showTab(t) {
   document.querySelectorAll('.tab').forEach(e => e.classList.toggle('active', e.dataset.tab === t));
   document.querySelectorAll('.panel').forEach(e => e.classList.toggle('active', e.id === 'panel-' + t));
 }
 function loadRx(k)  { document.getElementById('rx-request').value  = JSON.stringify(RX[k],  null, 2); }
 function loadSym(k) { document.getElementById('sym-request').value = JSON.stringify(SYM[k], null, 2); }
+function loadChat(k) {
+  const e = CHAT_EXAMPLES[k];
+  document.getElementById('chat-raw').value = e.text;
+  document.getElementById('chat-age').value = e.age != null ? e.age : '';
+  document.getElementById('chat-preg').checked = !!e.preg;
+  document.getElementById('chat-allergies').value = e.allergies || '';
+}
 loadRx('panadol_oos');
 loadSym('flu');
+loadChat('sym_flu');
 
 function esc(s) {
   return String(s == null ? '' : s)
@@ -206,9 +280,8 @@ async function submitSym() {
   }
 }
 
-function renderRx(out, data) {
-  let h = '<div class="response">';
-  h += '<h3>Kết quả kiểm đơn</h3>';
+function rxBody(data) {
+  let h = '<h3>Kết quả kiểm đơn</h3>';
   h += '<table><thead><tr><th>Thuốc</th><th>Trạng thái</th><th>Tồn kho</th><th>Thay thế</th><th>Cảnh báo</th></tr></thead><tbody>';
   for (const r of data.items || []) {
     const subs = (r.substitutes || []).map(s =>
@@ -226,13 +299,11 @@ function renderRx(out, data) {
   h += '</tbody></table>';
   if (data.summary_vi) h += '<h3 style="margin-top:16px">Tóm tắt</h3><div style="white-space:pre-wrap;font-size:13.5px">' + esc(data.summary_vi) + '</div>';
   if (data.disclaimer) h += '<div class="disclaimer">' + esc(data.disclaimer) + '</div>';
-  h += '<details><summary>Raw JSON</summary><pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details>';
-  h += '</div>';
-  out.innerHTML = h;
+  return h;
 }
 
-function renderSym(out, data) {
-  let h = '<div class="response">';
+function symBody(data) {
+  let h = '';
   if ((data.red_flags || []).length) {
     h += '<h3 style="color:var(--err)">🚩 Red flags</h3>';
     for (const f of data.red_flags) h += '<div class="redflag">' + esc(f) + '</div>';
@@ -255,9 +326,88 @@ function renderSym(out, data) {
   }
   if (data.summary_vi) h += '<h3 style="margin-top:14px">Tư vấn</h3><div style="white-space:pre-wrap;font-size:13.5px">' + esc(data.summary_vi) + '</div>';
   if (data.disclaimer) h += '<div class="disclaimer">' + esc(data.disclaimer) + '</div>';
-  h += '<details><summary>Raw JSON</summary><pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details>';
+  return h;
+}
+
+function renderRx(out, data) {
+  out.innerHTML = '<div class="response">' + rxBody(data)
+    + '<details><summary>Raw JSON</summary><pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details></div>';
+}
+
+function renderSym(out, data) {
+  out.innerHTML = '<div class="response">' + symBody(data)
+    + '<details><summary>Raw JSON</summary><pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details></div>';
+}
+
+function parsedBox(parsed) {
+  if (!parsed) return '';
+  let h = '<div class="parsed-box"><h3>Đã hiểu như sau <span class="intent-chip">' + esc(parsed.intent) + '</span></h3>';
+  const po = parsed.patient_overrides || {};
+  const poBits = [];
+  if (po.age_years != null)   poBits.push('tuổi=' + esc(po.age_years));
+  if (po.pregnancy != null)   poBits.push('mang thai=' + (po.pregnancy ? 'có' : 'không'));
+  if ((po.allergies || []).length) poBits.push('dị ứng=[' + po.allergies.map(esc).join(', ') + ']');
+  if (poBits.length) h += '<div class="kv">LLM suy ra: ' + poBits.join(' · ') + '</div>';
+
+  if (parsed.intent === 'prescription' && (parsed.prescription_items || []).length) {
+    h += '<div class="kv"><b>Thuốc trích:</b></div>';
+    for (let i = 0; i < parsed.prescription_items.length; i++) {
+      const it = parsed.prescription_items[i];
+      const res = (parsed.resolutions || [])[i];
+      let chip = '';
+      if (res && res.resolution) {
+        chip = '<span class="resolution-chip ' + esc(res.resolution) + '">' + esc(res.resolution) + '</span>';
+        if (res.name_vi && res.resolution !== 'unresolved') {
+          chip += ' <span class="muted">→ ' + esc(res.name_vi) + '</span>';
+        }
+      }
+      const parts = [it.brand, it.active_ingredient, it.strength, it.dosage_form].filter(Boolean).map(esc).join(' · ');
+      const dose = it.dosage_instruction ? ' — ' + esc(it.dosage_instruction) : '';
+      h += '<div class="kv">• ' + parts + ' · SL=' + (it.quantity || 0) + dose + ' ' + chip + '</div>';
+    }
+  }
+  if (parsed.intent === 'symptom') {
+    if ((parsed.symptoms_vi || []).length) {
+      h += '<div class="kv"><b>Triệu chứng:</b> ' + parsed.symptoms_vi.map(esc).join(', ') + '</div>';
+    }
+    if (parsed.duration_days != null) {
+      h += '<div class="kv"><b>Thời gian:</b> ' + parsed.duration_days + ' ngày</div>';
+    }
+  }
   h += '</div>';
-  out.innerHTML = h;
+  return h;
+}
+
+function renderChat(out, data) {
+  const body = data.flow === 'prescription' ? rxBody(data) : symBody(data);
+  out.innerHTML = '<div class="response">' + parsedBox(data.parsed) + body
+    + '<details><summary>Raw JSON</summary><pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details></div>';
+}
+
+async function submitChat() {
+  const btn = document.getElementById('chat-submit');
+  const out = document.getElementById('chat-response');
+  out.innerHTML = '<div class="response"><em>Đang gửi…</em></div>';
+  btn.disabled = true;
+  try {
+    const raw = document.getElementById('chat-raw').value.trim();
+    if (!raw) throw new Error('Vui lòng nhập đoạn văn.');
+    const ageVal = document.getElementById('chat-age').value;
+    const preg = document.getElementById('chat-preg').checked;
+    const allergies = document.getElementById('chat-allergies').value
+      .split(',').map(s => s.trim()).filter(Boolean);
+    const patient = {};
+    if (ageVal !== '') patient.age_years = parseFloat(ageVal);
+    patient.pregnancy = preg;
+    patient.allergies = allergies;
+    const payload = { raw_text: raw, patient };
+    const data = await postJson('/chat', JSON.stringify(payload));
+    renderChat(out, data);
+  } catch (e) {
+    out.innerHTML = '<div class="response"><div class="error">Error: ' + esc(e.message) + '</div></div>';
+  } finally {
+    btn.disabled = false;
+  }
 }
 </script>
 </body>
