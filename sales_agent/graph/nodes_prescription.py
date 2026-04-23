@@ -30,10 +30,13 @@ def check_inventory(state: AgentState) -> AgentState:
                     strength=item["strength"],
                     dosage_form=item["dosage_form"],
                 )
-                # Even if a generic is found via INN, mark the prescribed brand as
-                # not_carried so the substitute flow still proposes alternatives.
+                # Even if an INN-equivalent is found, mark the prescribed brand
+                # as not_carried so the substitute flow still proposes alternatives.
+                # The equivalent SKU's stock count belongs to the substitute row,
+                # not to the prescribed brand — zero it out to avoid showing a
+                # misleading quantity on the "not_carried" line.
                 if stock["status"] == "in_stock":
-                    stock = {**stock, "status": "not_carried"}
+                    stock = {**stock, "status": "not_carried", "qty_on_hand": 0}
             final_status = stock["status"]
             matched = None
             if stock["product_id"]:
