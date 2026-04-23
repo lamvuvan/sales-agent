@@ -32,7 +32,12 @@ make cli                    # CLI chat
 - `POST /prescriptions/check` — kiểm đơn thuốc + đề xuất thay thế.
 - `POST /symptoms/advise` — tư vấn OTC theo triệu chứng.
 
-Xem ví dụ request/response trong `examples/`.
+Xem ví dụ request/response trong `examples/`. Kịch bản curl đầy đủ:
+
+```bash
+./examples/curl_examples.sh            # chạy tất cả kịch bản
+./examples/curl_examples.sh sym_flu_adult  # chạy 1 kịch bản
+```
 
 ## Disclaimer
 
