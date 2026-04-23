@@ -27,6 +27,10 @@ make api                    # FastAPI tại http://localhost:8000
 make cli                    # CLI chat
 ```
 
+## Web UI để test nhanh
+
+Mở trình duyệt tại `http://localhost:8000/ui` (hoặc `http://localhost:8000/` để auto-redirect). Trang có sẵn 2 tab **Kiểm đơn thuốc** và **Tư vấn triệu chứng**, nút nạp request mẫu (Panadol hết hàng, đơn mixed, cảm cúm, trẻ 2 tháng sốt…), hiển thị kết quả dạng bảng + JSON raw.
+
 ## API
 
 - `POST /prescriptions/check` — kiểm đơn thuốc + đề xuất thay thế.
