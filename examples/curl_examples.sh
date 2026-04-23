@@ -65,6 +65,19 @@ rx_from_file() {
     -d @"$(dirname "$0")/rx_example.json" | $JQ
 }
 
+# Kịch bản 3b — Panadol hết hàng + brand paracetamol không kinh doanh.
+# Kỳ vọng: cả 2 item trả về substitutes theo hoạt chất paracetamol
+# (Hapacol 500, Efferalgan 500mg, Panadol Extra, Tiffy Dey, Decolgen Forte...),
+# lọc chỉ thuốc đang có tồn kho.
+# LƯU Ý: trước khi chạy, SET qty_on_hand = 0 cho SKU-001 (Panadol) trong inventory
+# để tạo trạng thái out_of_stock cho demo.
+rx_paracetamol_oos() {
+  hr "POST $API/prescriptions/check — Panadol hết + brand lạ (substitutes theo paracetamol)"
+  curl -fsS -X POST "$API/prescriptions/check" \
+    -H 'content-type: application/json' \
+    -d @"$(dirname "$0")/rx_paracetamol_oos.json" | $JQ
+}
+
 # Kịch bản 4 — cảm cúm người lớn (không red flag) -> kỳ vọng F-FLU-ADULT top hit.
 sym_flu_adult() {
   hr "POST $API/symptoms/advise — cảm cúm người lớn"
@@ -125,7 +138,7 @@ sym_redflag_dyspnea() {
     }' | $JQ
 }
 
-ALL=(healthz readyz rx_mixed rx_not_carried rx_from_file sym_flu_adult sym_infant_fever sym_pregnancy sym_diarrhea sym_redflag_dyspnea)
+ALL=(healthz readyz rx_mixed rx_not_carried rx_from_file rx_paracetamol_oos sym_flu_adult sym_infant_fever sym_pregnancy sym_diarrhea sym_redflag_dyspnea)
 
 if [[ $# -eq 0 ]]; then
   for fn in "${ALL[@]}"; do "$fn"; done
