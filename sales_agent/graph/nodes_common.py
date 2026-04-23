@@ -17,7 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 def intent_router(state: AgentState) -> AgentState:
-    """Decide the flow based on which input is present."""
+    """Decide the flow based on which input is present (legacy fallback).
+
+    If an upstream node (e.g., nlu_extract) has already set state['flow'],
+    keep it. Otherwise fall back to presence-based detection.
+    """
+    if state.get("flow") in ("prescription", "symptom"):
+        return state
     if state.get("prescription_items"):
         state["flow"] = "prescription"
     elif state.get("symptoms_vi"):

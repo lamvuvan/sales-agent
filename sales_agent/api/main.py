@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 
 from ..db.neo4j_client import close_driver
 from ..logging import configure_logging
+from .routes_chat import router as chat_router
 from .routes_health import router as health_router
 from .routes_prescription import router as rx_router
 from .routes_symptom import router as sym_router
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(rx_router)
     app.include_router(sym_router)
+    app.include_router(chat_router)
 
     @app.get("/", include_in_schema=False)
     def _root() -> RedirectResponse:

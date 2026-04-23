@@ -14,7 +14,15 @@ def ensure_pg_schema() -> None:
     with engine.begin() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
     Base.metadata.create_all(engine)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS idx_products_name_trgm "
+                "ON products USING gin (name_vi gin_trgm_ops)"
+            )
+        )
 
 
 def ensure_all() -> None:

@@ -7,6 +7,7 @@ from functools import lru_cache
 from langgraph.graph import END, START, StateGraph
 
 from .nodes_common import audit_log, intent_router
+from .nodes_nlu import nlu_extract, resolve_catalog
 from .nodes_prescription import (
     check_inventory,
     find_substitutes_for_missing,
@@ -35,6 +36,10 @@ def _route_after_redflag(state: AgentState) -> str:
 def build_graph():
     g = StateGraph(AgentState)
 
+    # NLU (no-op when raw_text empty)
+    g.add_node("nlu_extract", nlu_extract)
+    g.add_node("resolve_catalog", resolve_catalog)
+
     g.add_node("intent_router", intent_router)
 
     # Prescription subgraph
@@ -52,16 +57,18 @@ def build_graph():
 
     g.add_node("audit_log", audit_log)
 
-    g.add_edge(START, "intent_router")
+    g.add_edge(START, "nlu_extract")
+    g.add_edge("nlu_extract", "intent_router")
     g.add_conditional_edges(
         "intent_router",
         _route_flow,
         {
-            "prescription": "check_inventory",
+            "prescription": "resolve_catalog",
             "symptom": "extract_symptoms",
         },
     )
 
+    g.add_edge("resolve_catalog", "check_inventory")
     g.add_edge("check_inventory", "find_substitutes_for_missing")
     g.add_edge("find_substitutes_for_missing", "safety_check")
     g.add_edge("safety_check", "format_prescription_reply")

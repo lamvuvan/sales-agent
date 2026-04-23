@@ -85,3 +85,58 @@ class SymptomResponse(BaseModel):
     suggestions: list[FormulaSuggestionOut]
     summary_vi: str
     disclaimer: str
+
+
+# --- NLU / Chat ---------------------------------------------------------------
+
+
+class PatientOverrides(BaseModel):
+    age_years: float | None = None
+    pregnancy: bool | None = None
+    allergies: list[str] = Field(default_factory=list)
+
+
+class NluPrescriptionItem(BaseModel):
+    brand: str | None = None
+    active_ingredient: str | None = None
+    strength: str | None = None
+    dosage_form: str | None = None
+    quantity: int | None = None
+    dosage_instruction: str | None = None
+
+
+class NluOutput(BaseModel):
+    intent: Literal["prescription", "symptom"]
+    patient_overrides: PatientOverrides = Field(default_factory=PatientOverrides)
+    prescription_items: list[NluPrescriptionItem] | None = None
+    symptoms_vi: list[str] | None = None
+    duration_days: int | None = None
+
+
+class ChatPatient(BaseModel):
+    age_years: float | None = Field(default=None, ge=0, le=130)
+    pregnancy: bool = False
+    allergies: list[str] = Field(default_factory=list)
+
+
+class ChatRequest(BaseModel):
+    raw_text: str = Field(min_length=1, max_length=4000)
+    patient: ChatPatient | None = None
+
+
+class ParsedInput(BaseModel):
+    intent: Literal["prescription", "symptom"]
+    patient_overrides: PatientOverrides = Field(default_factory=PatientOverrides)
+    prescription_items: list[NluPrescriptionItem] | None = None
+    symptoms_vi: list[str] | None = None
+    duration_days: int | None = None
+
+
+class ChatResponse(BaseModel):
+    flow: Literal["prescription", "symptom"]
+    parsed: ParsedInput | None = None
+    items: list[InventoryLineOut] | None = None
+    red_flags: list[str] | None = None
+    suggestions: list[FormulaSuggestionOut] | None = None
+    summary_vi: str
+    disclaimer: str

@@ -35,6 +35,11 @@ class FormulaSuggestionOut(TypedDict, total=False):
 class AgentState(TypedDict, total=False):
     flow: Literal["prescription", "symptom"]
 
+    # NLU input (chat flow)
+    raw_text: str
+    parsed: dict[str, Any] | None
+    nlu_extracted_items: list[dict[str, Any]]
+
     # Prescription input
     prescription_items: list[PrescriptionItemIn]
     # Symptom input

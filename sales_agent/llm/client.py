@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from openai import OpenAI
 
@@ -46,6 +48,40 @@ def chat(
         ],
     )
     return (resp.choices[0].message.content or "").strip()
+
+
+def chat_json_schema(
+    system: str,
+    user: str,
+    *,
+    schema_name: str,
+    schema: dict[str, Any],
+    model: str | None = None,
+    temperature: float = 0.0,
+) -> dict[str, Any]:
+    """Call chat.completions.create with response_format=json_schema and return parsed dict.
+
+    Raises RuntimeError if the response cannot be parsed as JSON.
+    """
+    s = get_settings()
+    model = model or s.llm_extraction_model
+    resp = get_client().chat.completions.create(
+        model=model,
+        temperature=temperature,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        response_format={
+            "type": "json_schema",
+            "json_schema": {"name": schema_name, "strict": True, "schema": schema},
+        },
+    )
+    content = resp.choices[0].message.content or ""
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"LLM returned non-JSON content: {content[:200]}") from exc
 
 
 def embed(texts: list[str], *, model: str | None = None) -> list[list[float]]:
