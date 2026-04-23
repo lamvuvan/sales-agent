@@ -7,7 +7,12 @@ from functools import lru_cache
 from langgraph.graph import END, START, StateGraph
 
 from .nodes_common import audit_log, intent_router
-from .nodes_nlu import nlu_extract, resolve_catalog
+from .nodes_nlu import (
+    check_clarification,
+    format_clarification_reply,
+    nlu_extract,
+    resolve_catalog,
+)
 from .nodes_prescription import (
     check_inventory,
     find_substitutes_for_missing,
@@ -32,6 +37,14 @@ def _route_after_redflag(state: AgentState) -> str:
     return "format_symptom_reply" if state.get("red_flags") else "retrieve_formulas"
 
 
+def _route_after_clarify_check(state: AgentState) -> str:
+    return (
+        "format_clarification_reply"
+        if state.get("pending_clarification")
+        else "check_inventory"
+    )
+
+
 @lru_cache(maxsize=1)
 def build_graph():
     g = StateGraph(AgentState)
@@ -39,6 +52,8 @@ def build_graph():
     # NLU (no-op when raw_text empty)
     g.add_node("nlu_extract", nlu_extract)
     g.add_node("resolve_catalog", resolve_catalog)
+    g.add_node("check_clarification", check_clarification)
+    g.add_node("format_clarification_reply", format_clarification_reply)
 
     g.add_node("intent_router", intent_router)
 
@@ -68,7 +83,16 @@ def build_graph():
         },
     )
 
-    g.add_edge("resolve_catalog", "check_inventory")
+    g.add_edge("resolve_catalog", "check_clarification")
+    g.add_conditional_edges(
+        "check_clarification",
+        _route_after_clarify_check,
+        {
+            "format_clarification_reply": "format_clarification_reply",
+            "check_inventory": "check_inventory",
+        },
+    )
+    g.add_edge("format_clarification_reply", END)
     g.add_edge("check_inventory", "find_substitutes_for_missing")
     g.add_edge("find_substitutes_for_missing", "safety_check")
     g.add_edge("safety_check", "format_prescription_reply")

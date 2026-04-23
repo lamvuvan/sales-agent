@@ -122,6 +122,7 @@ class ChatPatient(BaseModel):
 class ChatRequest(BaseModel):
     raw_text: str = Field(min_length=1, max_length=4000)
     patient: ChatPatient | None = None
+    session_id: str | None = None  # set when replying to a clarification
 
 
 class ParsedInput(BaseModel):
@@ -132,11 +133,31 @@ class ParsedInput(BaseModel):
     duration_days: int | None = None
 
 
+class ClarificationOption(BaseModel):
+    sku: str
+    name_vi: str
+    strength: str
+    dosage_form: str
+    qty_on_hand: int
+    rx_only: bool
+
+
+class Clarification(BaseModel):
+    kind: Literal["ambiguous", "unresolved"]
+    item_index: int
+    item_summary: str  # e.g. "Amoxicillin 500mg (viên nang)"
+    question_vi: str
+    options: list[ClarificationOption] = Field(default_factory=list)  # empty for unresolved
+
+
 class ChatResponse(BaseModel):
-    flow: Literal["prescription", "symptom"]
+    status: Literal["complete", "awaiting_clarification"] = "complete"
+    session_id: str | None = None
+    flow: Literal["prescription", "symptom"] | None = None
     parsed: ParsedInput | None = None
+    clarification: Clarification | None = None
     items: list[InventoryLineOut] | None = None
     red_flags: list[str] | None = None
     suggestions: list[FormulaSuggestionOut] | None = None
-    summary_vi: str
-    disclaimer: str
+    summary_vi: str = ""
+    disclaimer: str = ""

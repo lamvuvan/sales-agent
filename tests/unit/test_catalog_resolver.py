@@ -11,27 +11,45 @@ from sales_agent.tools import catalog_resolver
 
 
 class _Result:
-    def __init__(self, row: dict | None):
-        self._row = row
+    """Supports either .first() (single row) or .all() (list).
+
+    If ``value`` is a list, .first() returns the first element; .all() returns the list.
+    If ``value`` is a dict or None, .first() returns it; .all() wraps it.
+    """
+
+    def __init__(self, value):
+        self._value = value
 
     def mappings(self) -> "_Result":
         return self
 
-    def first(self) -> dict | None:
-        return self._row
+    def first(self):
+        if isinstance(self._value, list):
+            return self._value[0] if self._value else None
+        return self._value
+
+    def all(self):
+        if isinstance(self._value, list):
+            return self._value
+        return [self._value] if self._value else []
 
 
 class _FakeSession:
-    """Feed SQL calls with canned rows in sequence: exact, fuzzy, inn_form (per item)."""
+    """Feed SQL calls with canned responses in sequence.
 
-    def __init__(self, responses: list[dict | None]) -> None:
+    Each response is either a dict (single row), a list (for .all()), or None.
+    Call order follows resolve_prescription_items: exact -> fuzzy -> inn_form
+    -> (if ambiguous lookup) all_by_inn_form.
+    """
+
+    def __init__(self, responses) -> None:
         self._responses = list(responses)
         self.calls: list[tuple[Any, dict]] = []
 
     def execute(self, stmt, params):
         self.calls.append((stmt, params))
-        row = self._responses.pop(0) if self._responses else None
-        return _Result(row)
+        value = self._responses.pop(0) if self._responses else None
+        return _Result(value)
 
 
 def _row(
@@ -162,6 +180,95 @@ def test_form_inferred_when_llm_left_null() -> None:
     ]
     out = catalog_resolver.resolve_prescription_items(sess, extracted)
     assert out[0]["item"]["dosage_form"] == "viên nén"
+
+
+def _cand(sku: str, name_vi: str, qty_on_hand: int = 0) -> dict:
+    return {
+        "sku": sku,
+        "name_vi": name_vi,
+        "strength": "500mg",
+        "dosage_form": "viên nang",
+        "rx_only": True,
+        "qty_on_hand": qty_on_hand,
+    }
+
+
+def test_inn_form_ambiguous_populates_candidates() -> None:
+    """Generic 'Amoxicillin 500mg' with no brand -> inn_form match + multiple SKUs.
+
+    candidates list is populated for the chat layer to ask a clarification.
+    """
+    sess = _FakeSession(
+        [
+            # inn_form single-row lookup (resolver picks DHG as representative).
+            _row(sku="SKU-022", name_vi="Amoxicillin 500mg DHG", inn="amoxicillin",
+                 strength="500mg", form="viên nang", rx_only=True),
+            # all_by_inn_form returns 2 candidates -> ambiguous.
+            [
+                _cand("SKU-022", "Amoxicillin 500mg DHG", qty_on_hand=50),
+                _cand("SKU-023", "Amoxicillin 500 Stada", qty_on_hand=35),
+            ],
+        ]
+    )
+    extracted = [
+        NluPrescriptionItem(
+            brand=None,
+            active_ingredient="amoxicillin",
+            strength="500mg",
+            dosage_form="viên nang",
+            quantity=21,
+            dosage_instruction="1 viên x 3 lần/ngày x 7 ngày",
+        )
+    ]
+    out = catalog_resolver.resolve_prescription_items(sess, extracted)
+    assert out[0]["resolution"] == "inn_form"
+    assert len(out[0]["candidates"]) == 2
+    assert out[0]["candidates"][0]["sku"] == "SKU-022"
+    assert out[0]["candidates"][0]["qty_on_hand"] == 50
+
+
+def test_inn_form_single_sku_no_candidates() -> None:
+    """Only one SKU matches INN+strength+form -> no ambiguity, no candidates field."""
+    sess = _FakeSession(
+        [
+            _row(sku="SKU-001", name_vi="Panadol 500mg"),
+            [_cand("SKU-001", "Panadol 500mg", qty_on_hand=0)],  # only one candidate
+        ]
+    )
+    extracted = [
+        NluPrescriptionItem(
+            brand=None,
+            active_ingredient="paracetamol",
+            strength="500mg",
+            dosage_form="viên nén",
+            quantity=10,
+            dosage_instruction=None,
+        )
+    ]
+    out = catalog_resolver.resolve_prescription_items(sess, extracted)
+    assert out[0]["resolution"] == "inn_form"
+    assert "candidates" not in out[0]
+
+
+def test_brand_exact_never_ambiguous() -> None:
+    """Exact brand match skips ambiguity detection (no extra SQL call)."""
+    sess = _FakeSession([_row(sku="SKU-022", name_vi="Amoxicillin 500mg DHG",
+                              inn="amoxicillin", strength="500mg", form="viên nang")])
+    extracted = [
+        NluPrescriptionItem(
+            brand="Amoxicillin 500mg DHG",
+            active_ingredient=None,
+            strength=None,
+            dosage_form=None,
+            quantity=10,
+            dosage_instruction=None,
+        )
+    ]
+    out = catalog_resolver.resolve_prescription_items(sess, extracted)
+    assert out[0]["resolution"] == "brand_exact"
+    assert "candidates" not in out[0]
+    # Exactly 1 SQL call (the exact-brand lookup).
+    assert len(sess.calls) == 1
 
 
 def test_unresolved_returns_with_flag() -> None:

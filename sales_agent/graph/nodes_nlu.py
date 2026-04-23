@@ -78,4 +78,42 @@ def resolve_catalog(state: AgentState) -> AgentState:
         for r in resolved
     ]
     state["parsed"] = parsed
+    # Candidates for ambiguous items, keyed by item index (str for JSON friendliness).
+    candidates_map: dict[str, list[dict]] = {}
+    for idx, r in enumerate(resolved):
+        cands = r.get("candidates")
+        if cands:
+            candidates_map[str(idx)] = [dict(c) for c in cands]
+    state["nlu_candidates"] = candidates_map
+    return state
+
+
+def check_clarification(state: AgentState) -> AgentState:
+    """If any prescription item needs clarification, stash it and halt the flow.
+
+    Sets ``state['pending_clarification']`` so the builder's conditional edge
+    can branch to ``format_clarification_reply``. No-op for symptom flow or
+    when all items are fully resolved.
+    """
+    if state.get("flow") != "prescription":
+        return state
+    # Local import to avoid circular ref at module load time.
+    from .clarification import detect_pending
+
+    pending = detect_pending(state)
+    if pending is not None:
+        state["pending_clarification"] = pending.model_dump()
+    return state
+
+
+def format_clarification_reply(state: AgentState) -> AgentState:
+    """Build final_response payload for an awaiting-clarification turn."""
+    pending = state.get("pending_clarification") or {}
+    state["final_response"] = {
+        "status": "awaiting_clarification",
+        "flow": "prescription",
+        "clarification": pending,
+        "summary_vi": pending.get("question_vi", ""),
+        "disclaimer": "",
+    }
     return state

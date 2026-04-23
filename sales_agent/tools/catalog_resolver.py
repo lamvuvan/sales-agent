@@ -6,6 +6,11 @@ Resolution order for each extracted item:
  3. Match by (active_ingredient, strength?, dosage_form?).
  4. Fall back to the extracted item as-is with status="unresolved".
 
+When the user typed a generic ("Amoxicillin 500mg") and the catalog has
+multiple branded SKUs for the same (INN, strength, form), resolution is
+still one of the branded SKUs but the ``candidates`` list is populated
+so the chat layer can ask a clarification question.
+
 The resolver never raises: unresolved items flow through downstream where
 check_inventory will classify them as not_carried / out_of_stock and the
 substitute step will propose alternatives.
@@ -25,11 +30,21 @@ TRGM_THRESHOLD: float = 0.4
 Resolution = Literal["brand_exact", "brand_fuzzy", "inn_form", "unresolved"]
 
 
+class Candidate(TypedDict):
+    sku: str
+    name_vi: str
+    strength: str
+    dosage_form: str
+    qty_on_hand: int
+    rx_only: bool
+
+
 class ResolvedItem(TypedDict, total=False):
     item: dict  # PrescriptionItem.model_dump()
     matched_sku: str | None
     matched_name_vi: str | None
     resolution: Resolution
+    candidates: list[Candidate]  # populated when >1 SKU shares INN+strength+form
 
 
 _EXACT_SQL = text(
@@ -66,6 +81,19 @@ _INN_FORM_SQL = text(
     """
 )
 
+_INN_FORM_ALL_SQL = text(
+    """
+    SELECT p.sku, p.name_vi, p.strength, p.dosage_form, p.rx_only,
+           COALESCE(i.qty_on_hand, 0) AS qty_on_hand
+    FROM products p
+    LEFT JOIN inventory i ON i.product_id = p.id
+    WHERE p.active_ingredient = :inn
+      AND p.strength = :strength
+      AND p.dosage_form = :form
+    ORDER BY qty_on_hand DESC, p.name_vi
+    """
+)
+
 
 def _exact_by_brand(session: Session, brand: str):
     return session.execute(_EXACT_SQL, {"brand": brand}).mappings().first()
@@ -86,6 +114,26 @@ def _by_inn_form(
     return session.execute(
         _INN_FORM_SQL, {"inn": inn.lower(), "strength": strength, "form": form}
     ).mappings().first()
+
+
+def _all_by_inn_form(
+    session: Session, *, inn: str, strength: str, form: str
+) -> list[Candidate]:
+    """All SKUs sharing (inn, strength, form). Used to detect ambiguity."""
+    rows = session.execute(
+        _INN_FORM_ALL_SQL, {"inn": inn.lower(), "strength": strength, "form": form}
+    ).mappings().all()
+    return [
+        Candidate(
+            sku=r["sku"],
+            name_vi=r["name_vi"],
+            strength=r["strength"],
+            dosage_form=r["dosage_form"],
+            qty_on_hand=int(r["qty_on_hand"] or 0),
+            rx_only=bool(r["rx_only"]),
+        )
+        for r in rows
+    ]
 
 
 def _coerce_form(form: str | None) -> str | None:
@@ -130,7 +178,13 @@ def resolve_prescription_items(
     session: Session,
     extracted: list[NluPrescriptionItem],
 ) -> list[ResolvedItem]:
-    """Return resolved prescription items ready to feed into check_inventory."""
+    """Return resolved prescription items ready to feed into check_inventory.
+
+    For ``brand_fuzzy`` or ``inn_form`` matches, also populate ``candidates``
+    if multiple SKUs share the same (active_ingredient, strength, form) —
+    this is what the chat layer uses to ask a clarification question.
+    ``brand_exact`` never triggers ambiguity (user named the SKU explicitly).
+    """
     out: list[ResolvedItem] = []
     for ex in extracted:
         row = None
@@ -155,5 +209,18 @@ def resolve_prescription_items(
             if row is not None:
                 resolution = "inn_form"
 
-        out.append(_build_item(ex, row, resolution=resolution))
+        resolved = _build_item(ex, row, resolution=resolution)
+
+        # Populate candidates for potentially ambiguous matches.
+        if row is not None and resolution in ("brand_fuzzy", "inn_form"):
+            candidates = _all_by_inn_form(
+                session,
+                inn=row["active_ingredient"],
+                strength=row["strength"],
+                form=row["dosage_form"],
+            )
+            if len(candidates) > 1:
+                resolved["candidates"] = candidates
+
+        out.append(resolved)
     return out

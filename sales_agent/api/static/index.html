@@ -100,6 +100,35 @@
   .resolution-chip.brand_fuzzy { background: rgba(251,191,36,0.2); color: var(--warn); }
   .resolution-chip.inn_form    { background: rgba(56,189,248,0.2); color: var(--accent); }
   .resolution-chip.unresolved  { background: rgba(248,113,113,0.2); color: var(--err); }
+  .transcript {
+    max-height: 340px; overflow-y: auto; padding: 6px; background: #020617;
+    border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px;
+  }
+  .transcript:empty { display: none; }
+  .bubble {
+    padding: 8px 12px; border-radius: 10px; margin: 6px 0; max-width: 90%;
+    font-size: 13.5px; white-space: pre-wrap; line-height: 1.4;
+  }
+  .bubble.user { background: #1e3a8a; color: #dbeafe; margin-left: auto; border-bottom-right-radius: 2px; }
+  .bubble.assistant { background: #1e293b; color: var(--fg); border-bottom-left-radius: 2px; }
+  .bubble.system { background: rgba(251,191,36,0.1); color: #fde68a; font-style: italic; }
+  .option-list { margin: 8px 0 0; padding: 0; list-style: none; }
+  .option-list li {
+    padding: 4px 8px; margin: 3px 0; background: #0b1220; border-radius: 4px;
+    font-size: 12.5px; border-left: 2px solid var(--accent); cursor: pointer;
+  }
+  .option-list li:hover { background: #17233a; }
+  .option-list b { color: var(--accent); }
+  .session-bar {
+    display: flex; gap: 10px; align-items: center; margin: 6px 0 2px;
+    font-size: 12px; color: var(--muted);
+  }
+  .session-bar .pill { padding: 2px 8px; background: #1e293b; border-radius: 10px; font-family: Menlo, monospace; font-size: 11px; }
+  .session-bar button {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .session-bar button:hover { color: var(--fg); border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -117,14 +146,24 @@
     <span class="muted">Ví dụ:</span>
     <button class="example-btn" onclick="loadChat('rx_panadol')">Đơn Panadol</button>
     <button class="example-btn" onclick="loadChat('rx_mixed')">Đơn 3 thuốc</button>
+    <button class="example-btn" onclick="loadChat('rx_ambiguous')">Amoxicillin 500mg (ambiguous)</button>
     <button class="example-btn" onclick="loadChat('sym_flu')">Cảm cúm người lớn</button>
     <button class="example-btn" onclick="loadChat('sym_infant')">Trẻ 2 tháng sốt</button>
     <button class="example-btn" onclick="loadChat('sym_pregnancy')">Phụ nữ có thai</button>
     <button class="example-btn" onclick="loadChat('sym_dyspnea')">Khó thở (red flag)</button>
   </div>
-  <label>Đoạn văn tiếng Việt (đơn thuốc hoặc mô tả triệu chứng)</label>
-  <textarea id="chat-raw" style="min-height:110px;font-family:inherit;font-size:14px"></textarea>
-  <div class="patient-row">
+
+  <div class="session-bar">
+    <span id="chat-session-label">Phiên mới</span>
+    <span id="chat-session-id" class="pill" style="display:none"></span>
+    <button id="chat-reset" type="button" onclick="resetChat()">Bắt đầu hội thoại mới</button>
+  </div>
+
+  <div class="transcript" id="chat-transcript"></div>
+
+  <label id="chat-label">Đoạn văn tiếng Việt (đơn thuốc hoặc mô tả triệu chứng)</label>
+  <textarea id="chat-raw" style="min-height:90px;font-family:inherit;font-size:14px"></textarea>
+  <div class="patient-row" id="chat-patient-row">
     <div>
       <label>Tuổi (tuỳ chọn)</label>
       <input id="chat-age" type="number" step="0.1" min="0" max="130" placeholder="vd 28">
@@ -209,11 +248,17 @@ const SYM = {
 const CHAT_EXAMPLES = {
   rx_panadol:    { text: "Panadol 500mg, 1 viên x 3 lần/ngày x 5 ngày", age: 34 },
   rx_mixed:      { text: "Panadol 500mg 1 viên x 3 lần/ngày x 5 ngày; Amoxicillin 500mg 1 viên x 3 lần/ngày x 7 ngày; Bromhexin 8mg 1 viên x 3 lần/ngày x 5 ngày", age: 34 },
+  rx_ambiguous:  { text: "Amoxicillin 500mg 1 viên x 3 lần/ngày x 7 ngày", age: 34 },
   sym_flu:       { text: "Khách 28 tuổi bị sốt nhẹ, sổ mũi, đau họng 1 ngày nay", age: 28 },
   sym_infant:    { text: "Bé 2 tháng tuổi bị sốt", age: 0.17 },
   sym_pregnancy: { text: "Phụ nữ 30 tuổi đang mang thai bị sổ mũi, hắt hơi 2 ngày", age: 30, preg: true },
   sym_dyspnea:   { text: "Người 55 tuổi bị khó thở, đau ngực", age: 55 }
 };
+
+// Chat session state (client-side).
+let chatSessionId = null;
+// Track the pending clarification so the UI can hint and options list.
+let chatPending = null;
 
 function showTab(t) {
   document.querySelectorAll('.tab').forEach(e => e.classList.toggle('active', e.dataset.tab === t));
@@ -222,15 +267,59 @@ function showTab(t) {
 function loadRx(k)  { document.getElementById('rx-request').value  = JSON.stringify(RX[k],  null, 2); }
 function loadSym(k) { document.getElementById('sym-request').value = JSON.stringify(SYM[k], null, 2); }
 function loadChat(k) {
+  // Clicking an example abandons the current multi-turn session.
+  resetChat();
   const e = CHAT_EXAMPLES[k];
   document.getElementById('chat-raw').value = e.text;
   document.getElementById('chat-age').value = e.age != null ? e.age : '';
   document.getElementById('chat-preg').checked = !!e.preg;
   document.getElementById('chat-allergies').value = e.allergies || '';
 }
+
+function resetChat() {
+  chatSessionId = null;
+  chatPending = null;
+  document.getElementById('chat-transcript').innerHTML = '';
+  document.getElementById('chat-response').innerHTML = '';
+  document.getElementById('chat-raw').value = '';
+  syncChatBar();
+}
+
+function syncChatBar() {
+  const label = document.getElementById('chat-session-label');
+  const pill  = document.getElementById('chat-session-id');
+  const reset = document.getElementById('chat-reset');
+  const patientRow = document.getElementById('chat-patient-row');
+  const chatLabel = document.getElementById('chat-label');
+  if (chatSessionId) {
+    label.textContent = 'Đang trong phiên — session_id:';
+    pill.textContent = chatSessionId.slice(0, 8) + '…';
+    pill.style.display = '';
+    reset.style.display = '';
+    // Hide patient inputs during clarification turns (request wins LLM once).
+    patientRow.style.display = 'none';
+    chatLabel.textContent = 'Câu trả lời của bạn (số thứ tự hoặc tên brand):';
+  } else {
+    label.textContent = 'Phiên mới';
+    pill.style.display = 'none';
+    reset.style.display = '';
+    patientRow.style.display = '';
+    chatLabel.textContent = 'Đoạn văn tiếng Việt (đơn thuốc hoặc mô tả triệu chứng)';
+  }
+}
+
+function appendBubble(kind, html) {
+  const t = document.getElementById('chat-transcript');
+  const div = document.createElement('div');
+  div.className = 'bubble ' + kind;
+  div.innerHTML = html;
+  t.appendChild(div);
+  t.scrollTop = t.scrollHeight;
+}
 loadRx('panadol_oos');
 loadSym('flu');
-loadChat('sym_flu');
+loadChat('rx_ambiguous');
+syncChatBar();
 
 function esc(s) {
   return String(s == null ? '' : s)
@@ -387,27 +476,83 @@ function renderChat(out, data) {
 async function submitChat() {
   const btn = document.getElementById('chat-submit');
   const out = document.getElementById('chat-response');
-  out.innerHTML = '<div class="response"><em>Đang gửi…</em></div>';
+  const rawEl = document.getElementById('chat-raw');
+  const raw = rawEl.value.trim();
+  if (!raw) {
+    out.innerHTML = '<div class="response"><div class="error">Vui lòng nhập đoạn văn.</div></div>';
+    return;
+  }
   btn.disabled = true;
+  out.innerHTML = '';
+  appendBubble('user', esc(raw));
+  rawEl.value = '';
+
   try {
-    const raw = document.getElementById('chat-raw').value.trim();
-    if (!raw) throw new Error('Vui lòng nhập đoạn văn.');
-    const ageVal = document.getElementById('chat-age').value;
-    const preg = document.getElementById('chat-preg').checked;
-    const allergies = document.getElementById('chat-allergies').value
-      .split(',').map(s => s.trim()).filter(Boolean);
-    const patient = {};
-    if (ageVal !== '') patient.age_years = parseFloat(ageVal);
-    patient.pregnancy = preg;
-    patient.allergies = allergies;
-    const payload = { raw_text: raw, patient };
+    const payload = { raw_text: raw };
+    if (chatSessionId) {
+      payload.session_id = chatSessionId;
+    } else {
+      const ageVal = document.getElementById('chat-age').value;
+      const preg = document.getElementById('chat-preg').checked;
+      const allergies = document.getElementById('chat-allergies').value
+        .split(',').map(s => s.trim()).filter(Boolean);
+      const patient = {};
+      if (ageVal !== '') patient.age_years = parseFloat(ageVal);
+      patient.pregnancy = preg;
+      patient.allergies = allergies;
+      payload.patient = patient;
+    }
     const data = await postJson('/chat', JSON.stringify(payload));
-    renderChat(out, data);
+    handleChatResponse(out, data);
   } catch (e) {
-    out.innerHTML = '<div class="response"><div class="error">Error: ' + esc(e.message) + '</div></div>';
+    appendBubble('system', 'Lỗi: ' + esc(e.message));
   } finally {
     btn.disabled = false;
+    rawEl.focus();
   }
+}
+
+function handleChatResponse(out, data) {
+  if (data.status === 'awaiting_clarification') {
+    chatSessionId = data.session_id;
+    chatPending = data.clarification;
+    appendBubble('assistant', clarificationBubble(data.clarification, data.parsed));
+    syncChatBar();
+    return;
+  }
+  // status === complete -> render full result + close session.
+  chatSessionId = null;
+  chatPending = null;
+  const assistantSummary = data.summary_vi
+    ? ('<b>Trả lời:</b>\n' + esc(data.summary_vi))
+    : 'Đã xử lý xong.';
+  appendBubble('assistant', assistantSummary);
+  const body = data.flow === 'prescription' ? rxBody(data) : symBody(data);
+  out.innerHTML = '<div class="response">' + parsedBox(data.parsed) + body
+    + '<details><summary>Raw JSON</summary><pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details></div>';
+  syncChatBar();
+}
+
+function clarificationBubble(c, parsed) {
+  const parsedHint = parsed && parsed.intent ? '<div class="muted" style="margin-bottom:6px">Đã hiểu ý: <span class="intent-chip">' + esc(parsed.intent) + '</span></div>' : '';
+  let h = parsedHint + '<b>' + esc(c.question_vi) + '</b>';
+  if (c.kind === 'ambiguous' && (c.options || []).length) {
+    h += '<ul class="option-list">';
+    c.options.forEach((opt, i) => {
+      h += '<li onclick="pickOption(' + (i + 1) + ')"><b>' + (i + 1) + '.</b> '
+        + esc(opt.name_vi) + ' <span class="muted">(' + esc(opt.strength) + ' · ' + esc(opt.dosage_form)
+        + ' · còn ' + opt.qty_on_hand + ')</span></li>';
+    });
+    h += '</ul><div class="muted" style="margin-top:4px">Nhập số thứ tự, tên brand, hoặc SKU.</div>';
+  } else if (c.kind === 'unresolved') {
+    h += '<div class="muted" style="margin-top:4px">Mục: ' + esc(c.item_summary) + '</div>';
+  }
+  return h;
+}
+
+function pickOption(n) {
+  document.getElementById('chat-raw').value = String(n);
+  submitChat();
 }
 </script>
 </body>
