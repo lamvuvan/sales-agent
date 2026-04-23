@@ -1,5 +1,5 @@
 sku,qty_on_hand,reorder_point
-SKU-001,120,30
+SKU-001,0,30
 SKU-002,80,20
 SKU-003,40,10
 SKU-004,50,15

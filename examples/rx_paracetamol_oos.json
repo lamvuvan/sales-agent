@@ -1,5 +1,5 @@
 {
-  "_note": "Kịch bản demo: đơn kê Panadol 500mg và một brand không kinh doanh. Để Panadol thực sự 'out_of_stock', tạm UPDATE inventory SET qty_on_hand = 0 WHERE product_id = (SELECT id FROM products WHERE sku = 'SKU-001');",
+  "_note": "Kịch bản demo: đơn kê Panadol 500mg (seed mặc định qty=0 -> out_of_stock) và một brand paracetamol không kinh doanh. Kỳ vọng response trả substitutes theo paracetamol cho cả 2 item.",
   "patient": {
     "age_years": 34,
     "pregnancy": false,
