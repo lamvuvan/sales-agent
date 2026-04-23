@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Pharmacy Sales Agent — Test UI</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --fg: #f1f5f9; --muted: #94a3b8;
+    --accent: #38bdf8; --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); margin: 0; padding: 24px;
+    max-width: 1100px; margin-inline: auto;
+  }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .sub { color: var(--muted); margin-bottom: 20px; font-size: 14px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 10px 18px; cursor: pointer; border: 1px solid transparent;
+    border-bottom: none; border-radius: 6px 6px 0 0; font-size: 14px;
+  }
+  .tab.active { background: var(--surface); border-color: var(--border); color: var(--accent); }
+  .panel { display: none; background: var(--surface); padding: 18px; border-radius: 0 8px 8px 8px; border: 1px solid var(--border); border-top: none; }
+  .panel.active { display: block; }
+  .example-row { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .example-btn {
+    padding: 4px 10px; font-size: 12px; background: #334155; color: var(--fg);
+    border-radius: 4px; cursor: pointer; border: none;
+  }
+  .example-btn:hover { background: #475569; }
+  label { display: block; margin-top: 10px; font-size: 13px; color: var(--muted); }
+  textarea {
+    width: 100%; padding: 10px; background: #0b1220; color: var(--fg);
+    border: 1px solid var(--border); border-radius: 4px; font-family: Menlo, monospace;
+    font-size: 12.5px; min-height: 220px; resize: vertical;
+  }
+  button.primary {
+    margin-top: 14px; padding: 10px 22px; background: var(--accent);
+    color: #0b1220; border: none; border-radius: 6px; cursor: pointer;
+    font-weight: 600; font-size: 14px;
+  }
+  button.primary:hover { opacity: 0.9; }
+  button.primary:disabled { opacity: 0.5; cursor: wait; }
+  .response { margin-top: 18px; padding: 14px; background: #0b1220; border-radius: 6px; }
+  .response h3 { margin: 0 0 8px; font-size: 16px; color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; }
+  td { padding: 8px; vertical-align: top; border-bottom: 1px solid #1e293b; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .chip.in_stock { background: rgba(74,222,128,0.2); color: var(--ok); }
+  .chip.out_of_stock { background: rgba(251,191,36,0.2); color: var(--warn); }
+  .chip.not_carried { background: rgba(248,113,113,0.2); color: var(--err); }
+  .muted { color: var(--muted); font-size: 12px; }
+  .disclaimer {
+    margin-top: 14px; padding: 10px 12px; background: rgba(251,191,36,0.1);
+    border-left: 3px solid var(--warn); color: #fde68a; border-radius: 3px; font-size: 12.5px;
+  }
+  .redflag {
+    margin-top: 8px; padding: 10px 12px; background: rgba(248,113,113,0.1);
+    border-left: 3px solid var(--err); color: #fecaca; border-radius: 3px;
+  }
+  .error { color: var(--err); font-weight: 600; padding: 8px; }
+  details { margin-top: 14px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  details pre {
+    margin-top: 8px; padding: 10px; background: #020617; color: #cbd5e1;
+    border-radius: 4px; overflow-x: auto; font-size: 12px;
+  }
+  .suggestion {
+    margin: 10px 0; padding: 10px 12px; background: #020617; border-radius: 4px;
+  }
+  .suggestion ul { margin: 6px 0 0 18px; padding: 0; }
+  .suggestion li { margin: 2px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Pharmacy Sales Agent — Test UI</h1>
+<div class="sub">Trợ lý nhà thuốc tiếng Việt · endpoints <code>/prescriptions/check</code> và <code>/symptoms/advise</code></div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="rx" onclick="showTab('rx')">Kiểm đơn thuốc</div>
+  <div class="tab" data-tab="sym" onclick="showTab('sym')">Tư vấn triệu chứng</div>
+</div>
+
+<div class="panel active" id="panel-rx">
+  <div class="example-row">
+    <span class="muted">Ví dụ:</span>
+    <button class="example-btn" onclick="loadRx('panadol_oos')">Panadol hết hàng</button>
+    <button class="example-btn" onclick="loadRx('mixed')">Đơn 3 item (mixed)</button>
+    <button class="example-btn" onclick="loadRx('cefixime')">Cefixime không kinh doanh</button>
+  </div>
+  <label>Request body (JSON)</label>
+  <textarea id="rx-request"></textarea>
+  <button class="primary" id="rx-submit" onclick="submitRx()">Gửi POST /prescriptions/check</button>
+  <div id="rx-response"></div>
+</div>
+
+<div class="panel" id="panel-sym">
+  <div class="example-row">
+    <span class="muted">Ví dụ:</span>
+    <button class="example-btn" onclick="loadSym('flu')">Cảm cúm người lớn</button>
+    <button class="example-btn" onclick="loadSym('infant_fever')">Trẻ 2 tháng sốt</button>
+    <button class="example-btn" onclick="loadSym('diarrhea')">Tiêu chảy nhẹ</button>
+    <button class="example-btn" onclick="loadSym('pregnancy')">Phụ nữ có thai</button>
+    <button class="example-btn" onclick="loadSym('dyspnea')">Khó thở (red flag)</button>
+  </div>
+  <label>Request body (JSON)</label>
+  <textarea id="sym-request"></textarea>
+  <button class="primary" id="sym-submit" onclick="submitSym()">Gửi POST /symptoms/advise</button>
+  <div id="sym-response"></div>
+</div>
+
+<script>
+const RX = {
+  panadol_oos: {
+    patient: { age_years: 34, pregnancy: false, allergies: [] },
+    items: [
+      { drug_name: "Panadol 500mg", active_ingredient: "paracetamol", strength: "500mg",
+        dosage_form: "viên nén", quantity: 20, dosage_instruction: "1 viên x 3 lần/ngày khi sốt" }
+    ]
+  },
+  mixed: {
+    patient: { age_years: 34, pregnancy: false, allergies: [] },
+    items: [
+      { drug_name: "Panadol 500mg", active_ingredient: "paracetamol", strength: "500mg",
+        dosage_form: "viên nén", quantity: 20, dosage_instruction: "1 viên x 3 lần/ngày sau ăn" },
+      { drug_name: "Amoxicillin 500mg", active_ingredient: "amoxicillin", strength: "500mg",
+        dosage_form: "viên nang", quantity: 21, dosage_instruction: "1 viên x 3 lần/ngày" },
+      { drug_name: "Bromhexin 8mg", active_ingredient: "bromhexine", strength: "8mg",
+        dosage_form: "viên nén", quantity: 30, dosage_instruction: "1 viên x 3 lần/ngày" }
+    ]
+  },
+  cefixime: {
+    patient: { age_years: 45, pregnancy: false, allergies: ["penicillin"] },
+    items: [
+      { drug_name: "Cefixime 200mg", active_ingredient: "cefixime", strength: "200mg",
+        dosage_form: "viên nang", quantity: 10 }
+    ]
+  }
+};
+const SYM = {
+  flu:          { patient: { age_years: 28, pregnancy: false, allergies: [] }, symptoms_vi: ["sốt nhẹ", "sổ mũi", "đau họng"], duration_days: 1 },
+  infant_fever: { patient: { age_years: 0.17, pregnancy: false, allergies: [] }, symptoms_vi: ["sốt"], duration_days: 1 },
+  diarrhea:     { patient: { age_years: 35, pregnancy: false, allergies: [] }, symptoms_vi: ["tiêu chảy", "đau bụng nhẹ"], duration_days: 1 },
+  pregnancy:    { patient: { age_years: 30, pregnancy: true, allergies: [] }, symptoms_vi: ["sổ mũi", "hắt hơi"], duration_days: 2 },
+  dyspnea:      { patient: { age_years: 55, pregnancy: false, allergies: [] }, symptoms_vi: ["khó thở", "đau ngực"], duration_days: 0 }
+};
+
+function showTab(t) {
+  document.querySelectorAll('.tab').forEach(e => e.classList.toggle('active', e.dataset.tab === t));
+  document.querySelectorAll('.panel').forEach(e => e.classList.toggle('active', e.id === 'panel-' + t));
+}
+function loadRx(k)  { document.getElementById('rx-request').value  = JSON.stringify(RX[k],  null, 2); }
+function loadSym(k) { document.getElementById('sym-request').value = JSON.stringify(SYM[k], null, 2); }
+loadRx('panadol_oos');
+loadSym('flu');
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function postJson(url, body) {
+  const r = await fetch(url, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data?.detail ? JSON.stringify(data.detail) : `HTTP ${r.status}`);
+  return data;
+}
+
+async function submitRx() {
+  const btn = document.getElementById('rx-submit');
+  const out = document.getElementById('rx-response');
+  out.innerHTML = '<div class="response"><em>Đang gửi…</em></div>';
+  btn.disabled = true;
+  try {
+    const body = document.getElementById('rx-request').value;
+    JSON.parse(body);
+    const data = await postJson('/prescriptions/check', body);
+    renderRx(out, data);
+  } catch (e) {
+    out.innerHTML = '<div class="response"><div class="error">Error: ' + esc(e.message) + '</div></div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function submitSym() {
+  const btn = document.getElementById('sym-submit');
+  const out = document.getElementById('sym-response');
+  out.innerHTML = '<div class="response"><em>Đang gửi…</em></div>';
+  btn.disabled = true;
+  try {
+    const body = document.getElementById('sym-request').value;
+    JSON.parse(body);
+    const data = await postJson('/symptoms/advise', body);
+    renderSym(out, data);
+  } catch (e) {
+    out.innerHTML = '<div class="response"><div class="error">Error: ' + esc(e.message) + '</div></div>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderRx(out, data) {
+  let h = '<div class="response">';
+  h += '<h3>Kết quả kiểm đơn</h3>';
+  h += '<table><thead><tr><th>Thuốc</th><th>Trạng thái</th><th>Tồn kho</th><th>Thay thế</th><th>Cảnh báo</th></tr></thead><tbody>';
+  for (const r of data.items || []) {
+    const subs = (r.substitutes || []).map(s =>
+      `<div>• <b>${esc(s.name_vi)}</b> <span class="muted">(${esc(s.kind)}, còn ${s.qty_on_hand})</span></div>`
+    ).join('') || '<span class="muted">-</span>';
+    const notes = (r.safety_notes || []).map(n => `<div>⚠ ${esc(n)}</div>`).join('') || '<span class="muted">-</span>';
+    h += `<tr>
+      <td><b>${esc(r.item.drug_name)}</b><br><span class="muted">${esc(r.item.active_ingredient)} · ${esc(r.item.strength)} · ${esc(r.item.dosage_form)}</span></td>
+      <td><span class="chip ${esc(r.status)}">${esc(r.status)}</span></td>
+      <td>${r.qty_on_hand}</td>
+      <td>${subs}</td>
+      <td>${notes}</td>
+    </tr>`;
+  }
+  h += '</tbody></table>';
+  if (data.summary_vi) h += '<h3 style="margin-top:16px">Tóm tắt</h3><div style="white-space:pre-wrap;font-size:13.5px">' + esc(data.summary_vi) + '</div>';
+  if (data.disclaimer) h += '<div class="disclaimer">' + esc(data.disclaimer) + '</div>';
+  h += '<details><summary>Raw JSON</summary><pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details>';
+  h += '</div>';
+  out.innerHTML = h;
+}
+
+function renderSym(out, data) {
+  let h = '<div class="response">';
+  if ((data.red_flags || []).length) {
+    h += '<h3 style="color:var(--err)">🚩 Red flags</h3>';
+    for (const f of data.red_flags) h += '<div class="redflag">' + esc(f) + '</div>';
+  }
+  if ((data.suggestions || []).length) {
+    h += '<h3 style="margin-top:14px">Gợi ý OTC</h3>';
+    for (const s of data.suggestions) {
+      h += '<div class="suggestion"><b>' + esc(s.name_vi) + '</b> <span class="muted">(score=' + s.score.toFixed(2) + ')</span><ul>';
+      for (const it of s.items) {
+        const age = it.age_rule_vi ? ' <span class="muted">(' + esc(it.age_rule_vi) + ')</span>' : '';
+        h += '<li><b>' + esc(it.active_ingredient) + '</b> — ' + esc(it.dose_per_take_vi)
+          + ' × ' + it.frequency_per_day + '/ngày × ' + it.duration_days + ' ngày' + age + '</li>';
+      }
+      h += '</ul>';
+      if ((s.warnings || []).length) {
+        h += '<div class="muted" style="margin-top:6px">Lưu ý: ' + s.warnings.map(esc).join('; ') + '</div>';
+      }
+      h += '</div>';
+    }
+  }
+  if (data.summary_vi) h += '<h3 style="margin-top:14px">Tư vấn</h3><div style="white-space:pre-wrap;font-size:13.5px">' + esc(data.summary_vi) + '</div>';
+  if (data.disclaimer) h += '<div class="disclaimer">' + esc(data.disclaimer) + '</div>';
+  h += '<details><summary>Raw JSON</summary><pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details>';
+  h += '</div>';
+  out.innerHTML = h;
+}
+</script>
+</body>
+</html>
