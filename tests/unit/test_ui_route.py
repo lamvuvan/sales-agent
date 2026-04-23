@@ -19,6 +19,21 @@ def test_ui_page_served() -> None:
     assert "<textarea id=\"sym-request\"" in body
 
 
+def test_ui_has_chat_tab() -> None:
+    """Chat NLU tab with raw_text input, patient overrides, and render logic."""
+    client = TestClient(create_app())
+    body = client.get("/ui").text
+    assert "/chat" in body
+    assert 'id="chat-raw"' in body
+    assert 'id="chat-age"' in body
+    assert 'id="chat-preg"' in body
+    assert 'id="chat-allergies"' in body
+    assert 'id="chat-submit"' in body
+    assert "submitChat" in body
+    assert "renderChat" in body
+    assert "parsed-box" in body
+
+
 def test_root_redirects_to_ui() -> None:
     client = TestClient(create_app())
     r = client.get("/", follow_redirects=False)
