@@ -1,0 +1,31 @@
+sku,name_vi,active_ingredient,strength,dosage_form,pack_size,rx_only,manufacturer,price_vnd
+SKU-001,Panadol 500mg,paracetamol,500mg,viên nén,hộp 10 vỉ x 12 viên,false,GSK,25000
+SKU-002,Hapacol 500,paracetamol,500mg,viên nén,hộp 10 vỉ x 10 viên,false,DHG Pharma,18000
+SKU-003,Efferalgan 500mg,paracetamol,500mg,viên sủi,hộp 4 vỉ x 4 viên,false,UPSA,45000
+SKU-004,Hapacol 150 Flu,paracetamol,150mg,gói bột,hộp 24 gói,false,DHG Pharma,55000
+SKU-005,Ibuprofen 200 Stada,ibuprofen,200mg,viên nén,hộp 10 vỉ x 10 viên,false,Stada VN,22000
+SKU-006,Ibuprofen 400 Stada,ibuprofen,400mg,viên nén,hộp 10 vỉ x 10 viên,false,Stada VN,35000
+SKU-007,Aspirin pH8 500mg,aspirin,500mg,viên nén,hộp 10 vỉ x 10 viên,false,Mekophar,15000
+SKU-008,Clorpheniramin 4mg Traphaco,chlorpheniramine,4mg,viên nén,lọ 200 viên,false,Traphaco,12000
+SKU-009,Loratadin 10mg Stada,loratadine,10mg,viên nén,hộp 3 vỉ x 10 viên,false,Stada VN,28000
+SKU-010,Clarityne 10mg,loratadine,10mg,viên nén,hộp 1 vỉ x 10 viên,false,Bayer,48000
+SKU-011,Cetirizin 10mg DHG,cetirizine,10mg,viên nén,hộp 10 vỉ x 10 viên,false,DHG Pharma,25000
+SKU-012,Tamiflu 75mg,oseltamivir,75mg,viên nang,hộp 1 vỉ x 10 viên,true,Roche,580000
+SKU-013,Atussin,dextromethorphan,15mg,viên nén,hộp 10 vỉ x 10 viên,false,United Pharma,30000
+SKU-014,Bromhexin 8mg Vidipha,bromhexine,8mg,viên nén,hộp 10 vỉ x 25 viên,false,Vidipha,35000
+SKU-015,Ambroxol 30mg Stada,ambroxol,30mg,viên nén,hộp 10 vỉ x 10 viên,false,Stada VN,40000
+SKU-016,Oresol 245 gói,oresol,245mg/gói,gói bột,hộp 20 gói,false,Mekophar,20000
+SKU-017,Loperamide 2mg STADA,loperamide,2mg,viên nén,hộp 10 vỉ x 10 viên,false,Stada VN,25000
+SKU-018,Smecta gói,diosmectite,3g/gói,gói bột,hộp 30 gói,false,Ipsen Pharma,90000
+SKU-019,Motilium-M 10mg,domperidone,10mg,viên nén,hộp 10 vỉ x 10 viên,false,Janssen,55000
+SKU-020,Pepcidine 40mg,famotidine,40mg,viên nén,hộp 3 vỉ x 10 viên,false,Merck,75000
+SKU-021,Famotidin 20mg DHG,famotidine,20mg,viên nén,hộp 10 vỉ x 10 viên,false,DHG Pharma,28000
+SKU-022,Amoxicillin 500mg DHG,amoxicillin,500mg,viên nang,hộp 10 vỉ x 10 viên,true,DHG Pharma,45000
+SKU-023,Amoxicillin 500 Stada,amoxicillin,500mg,viên nang,hộp 10 vỉ x 10 viên,true,Stada VN,50000
+SKU-024,Decolgen Forte,paracetamol,500mg,viên nén,hộp 25 vỉ x 4 viên,false,United Pharma,70000
+SKU-025,Tiffy Dey,paracetamol,500mg,viên nén,hộp 25 vỉ x 4 viên,false,Thai Nakorn Patana,65000
+SKU-026,Hapacol 250 Flu trẻ em,paracetamol,250mg,gói bột,hộp 24 gói,false,DHG Pharma,65000
+SKU-027,Panadol Extra,paracetamol,500mg,viên nén,hộp 15 vỉ x 12 viên,false,GSK,55000
+SKU-028,Ambroxol 15mg/5ml siro,ambroxol,15mg/5ml,siro,chai 60ml,false,Mekophar,35000
+SKU-029,Bromhexin 4mg/5ml siro,bromhexine,4mg/5ml,siro,chai 60ml,false,Traphaco,32000
+SKU-030,Paracetamol 120mg/5ml siro,paracetamol,120mg/5ml,siro,chai 60ml,false,Traphaco,28000

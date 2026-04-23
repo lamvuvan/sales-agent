@@ -1,0 +1,17 @@
+drug_a,drug_b,kind,confidence
+Panadol 500mg,Hapacol 500,generic,1.0
+Hapacol 500,Panadol 500mg,generic,1.0
+Panadol 500mg,Efferalgan 500mg,generic,0.95
+Efferalgan 500mg,Panadol 500mg,generic,0.95
+Hapacol 500,Efferalgan 500mg,generic,0.95
+Loratadin 10mg Stada,Clarityne 10mg,generic,1.0
+Clarityne 10mg,Loratadin 10mg Stada,generic,1.0
+Loratadin 10mg Stada,Cetirizin 10mg DHG,therapeutic,0.8
+Cetirizin 10mg DHG,Loratadin 10mg Stada,therapeutic,0.8
+Clarityne 10mg,Cetirizin 10mg DHG,therapeutic,0.8
+Bromhexin 8mg Vidipha,Ambroxol 30mg Stada,therapeutic,0.85
+Ambroxol 30mg Stada,Bromhexin 8mg Vidipha,therapeutic,0.85
+Famotidin 20mg DHG,Pepcidine 40mg,therapeutic,0.9
+Amoxicillin 500mg DHG,Amoxicillin 500 Stada,generic,1.0
+Amoxicillin 500 Stada,Amoxicillin 500mg DHG,generic,1.0
+Ibuprofen 200 Stada,Ibuprofen 400 Stada,generic,0.9

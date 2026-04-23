@@ -1,0 +1,17 @@
+formula_code,active_ingredient,strength_hint,dose_per_take_vi,frequency_per_day,duration_days,age_rule_vi,role
+F-FLU-ADULT,paracetamol,500mg,1 viên,3,3,người lớn,primary
+F-FLU-ADULT,chlorpheniramine,4mg,1 viên,2,3,người lớn; tránh lái xe do gây buồn ngủ,adjuvant
+F-FLU-ADULT,phenylephrine,10mg,1 viên,3,3,người lớn,adjuvant
+F-COLD-ADULT,chlorpheniramine,4mg,1 viên,3,3,người lớn,primary
+F-COLD-ADULT,paracetamol,500mg,1 viên,3,2,dùng nếu có đau đầu/sốt,adjuvant
+F-FEVER-KID,paracetamol,120mg/5ml,10-15 mg/kg/lần,4,3,trẻ em theo cân nặng; không quá 60 mg/kg/24h,primary
+F-FEVER-KID,oresol,245mg/gói,1 gói pha theo hướng dẫn,3,3,trẻ em nếu kém ăn/uống ít,adjuvant
+F-RHIN-ADULT,loratadine,10mg,1 viên,1,7,người lớn,primary
+F-DRY-COUGH,dextromethorphan,15mg,1 viên,3,3,người lớn,primary
+F-WET-COUGH,bromhexine,8mg,1 viên,3,5,người lớn,primary
+F-WET-COUGH,ambroxol,30mg,1 viên,2,5,có thể thay bromhexine,adjuvant
+F-SORE-THROAT,paracetamol,500mg,1 viên,3,3,người lớn,primary
+F-DIARRHEA-MILD,oresol,245mg/gói,1 gói pha 200ml,6,3,người lớn; uống sau mỗi lần đi ngoài,primary
+F-DIARRHEA-MILD,diosmectite,3g/gói,1 gói,3,3,người lớn,adjuvant
+F-DYSPEPSIA,domperidone,10mg,1 viên trước ăn 15-30 phút,3,3,người lớn,primary
+F-GERD-MILD,famotidine,20mg,1 viên,2,7,người lớn,primary
