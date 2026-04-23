@@ -15,16 +15,6 @@ if ! command -v "$JQ" >/dev/null 2>&1; then
   JQ="cat"
 fi
 
-# Docker-Postgres helpers (default to the service name in infra/docker-compose.yml).
-PG_CONTAINER="${PG_CONTAINER:-sales_agent_pg}"
-PG_USER="${PG_USER:-sales}"
-PG_DB="${PG_DB:-sales_agent}"
-
-psql_exec() {
-  # Usage: psql_exec "SQL string"
-  docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" -d "$PG_DB" -v ON_ERROR_STOP=1 -c "$1"
-}
-
 hr() { printf '\n--- %s ---\n' "$1"; }
 
 healthz() {
@@ -88,26 +78,11 @@ rx_paracetamol_oos() {
     -d @"$(dirname "$0")/rx_paracetamol_oos.json" | $JQ
 }
 
-# Helper: đặt tồn kho Panadol (SKU-001) về 0 — trùng seed mặc định.
-# Dùng sau khi đã chạy panadol_restore (hoặc tự tăng kho) để quay về trạng thái demo.
-panadol_set_oos() {
-  hr "SQL: SET qty_on_hand = 0 cho SKU-001 (Panadol 500mg)"
-  psql_exec "UPDATE inventory SET qty_on_hand = 0, updated_at = now()
-             WHERE product_id = (SELECT id FROM products WHERE sku = 'SKU-001');"
-}
-
-# Helper: đổi tồn kho Panadol sang 120 để minh hoạ trạng thái còn hàng.
-panadol_restore() {
-  hr "SQL: SET qty_on_hand = 120 cho SKU-001 (Panadol 500mg)"
-  psql_exec "UPDATE inventory SET qty_on_hand = 120, updated_at = now()
-             WHERE product_id = (SELECT id FROM products WHERE sku = 'SKU-001');"
-}
-
 # Kịch bản 3c — CURL INLINE (không cần file) cho đơn chỉ kê Panadol 500mg.
-# Với seed mặc định, Panadol đang OOS -> response sẽ có substitutes paracetamol.
-# Gọi panadol_restore trước nếu muốn thấy trạng thái in_stock.
+# Với seed mặc định, Panadol qty_on_hand=0 -> response sẽ có status=out_of_stock
+# và substitutes paracetamol (Hapacol 500, Panadol Extra, Tiffy Dey, Decolgen Forte).
 rx_panadol_only() {
-  hr "POST $API/prescriptions/check — chỉ Panadol 500mg (inline curl)"
+  hr "POST $API/prescriptions/check — chỉ Panadol 500mg (inline curl, seed OOS)"
   curl -fsS -X POST "$API/prescriptions/check" \
     -H 'content-type: application/json' \
     -d @- <<'JSON' | $JQ
@@ -129,18 +104,6 @@ rx_panadol_only() {
   ]
 }
 JSON
-}
-
-# Kịch bản 3d — FULL FLOW demo cả 2 trạng thái Panadol, trả về seed default.
-# 1) rx_panadol_only  (seed=OOS -> expect out_of_stock + substitutes paracetamol)
-# 2) panadol_restore  (qty=120)
-# 3) rx_panadol_only  (expect in_stock, không substitutes)
-# 4) panadol_set_oos  (qty=0, về lại seed default)
-rx_panadol_oos_scenario() {
-  rx_panadol_only
-  panadol_restore
-  rx_panadol_only
-  panadol_set_oos
 }
 
 # Kịch bản 4 — cảm cúm người lớn (không red flag) -> kỳ vọng F-FLU-ADULT top hit.
@@ -203,7 +166,7 @@ sym_redflag_dyspnea() {
     }' | $JQ
 }
 
-ALL=(healthz readyz rx_mixed rx_not_carried rx_from_file rx_paracetamol_oos rx_panadol_only rx_panadol_oos_scenario sym_flu_adult sym_infant_fever sym_pregnancy sym_diarrhea sym_redflag_dyspnea)
+ALL=(healthz readyz rx_mixed rx_not_carried rx_from_file rx_paracetamol_oos rx_panadol_only sym_flu_adult sym_infant_fever sym_pregnancy sym_diarrhea sym_redflag_dyspnea)
 
 if [[ $# -eq 0 ]]; then
   for fn in "${ALL[@]}"; do "$fn"; done
